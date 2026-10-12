@@ -1,0 +1,28 @@
+{
+  "name": "kanvas-yuno-sdk-lite",
+  "private": true,
+  "description": "Kanvas x Yuno SDK Lite challenge: broken staging code vs. fixed reference implementation",
+  "type": "module",
+  "workspaces": [
+    "tools/mock-yuno",
+    "apps/staging-broken/backend",
+    "apps/staging-broken/frontend",
+    "apps/fixed/backend",
+    "apps/fixed/frontend"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "setup": "node scripts/setup-env.mjs",
+    "mock": "npm run dev -w tools/mock-yuno",
+    "broken": "concurrently -n broken-be,broken-fe -c red,magenta \"npm run dev -w apps/staging-broken/backend\" \"npm run dev -w apps/staging-broken/frontend\"",
+    "fixed": "concurrently -n fixed-be,fixed-fe -c green,cyan \"npm run dev -w apps/fixed/backend\" \"npm run dev -w apps/fixed/frontend\"",
+    "dev": "concurrently -n mock,broken-be,broken-fe,fixed-be,fixed-fe -c yellow,red,magenta,green,cyan \"npm run dev -w tools/mock-yuno\" \"npm run dev -w apps/staging-broken/backend\" \"npm run dev -w apps/staging-broken/frontend\" \"npm run dev -w apps/fixed/backend\" \"npm run dev -w apps/fixed/frontend\"",
+    "test:double-click": "node scripts/double-click-test.mjs",
+    "tunnel": "cloudflared tunnel --url http://localhost:3000"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@kanvas/fixed-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Kanvas one-page checkout — reference Yuno SDK Lite integration",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@yuno-payments/sdk-web": "^9.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.0",
+    "vite": "^8.0.0"
+  }
+}

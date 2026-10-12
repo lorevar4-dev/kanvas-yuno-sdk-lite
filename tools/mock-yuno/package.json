@@ -1,0 +1,17 @@
+{
+  "name": "@kanvas/mock-yuno",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local simulator of the Yuno API + Web SDK, used only when YUNO_MODE=mock",
+  "type": "module",
+  "exports": {
+    "./credentials": "./credentials.js",
+    "./sdk": "./sdk/index.js"
+  },
+  "scripts": {
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

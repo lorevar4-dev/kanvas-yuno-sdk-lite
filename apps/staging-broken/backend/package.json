@@ -1,0 +1,13 @@
+{
+  "name": "@kanvas/staging-broken-backend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Diego's staging backend, verbatim from the brief (do not ship)",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

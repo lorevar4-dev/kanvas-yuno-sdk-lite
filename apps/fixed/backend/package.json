@@ -1,0 +1,14 @@
+{
+  "name": "@kanvas/fixed-backend",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Kanvas checkout backend — reference Yuno SDK Lite integration",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch-path=src src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
