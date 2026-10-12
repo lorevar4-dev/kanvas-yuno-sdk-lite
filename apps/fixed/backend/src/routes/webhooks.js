@@ -18,7 +18,7 @@ const safeEqual = (a = '', b = '') => {
 function authenticate(req) {
   const { apiKey, secret, hmacSecret } = config.yuno.webhook
   if (apiKey && secret && !(safeEqual(req.get('x-api-key'), apiKey) && safeEqual(req.get('x-secret'), secret))) {
-    return 'x-api-key / x-secret mismatch'
+    return `x-api-key / x-secret mismatch (x-api-key ${req.get('x-api-key') ? 'present' : 'missing'}, x-secret ${req.get('x-secret') ? 'present' : 'missing'})`
   }
   if (hmacSecret) {
     const expected = createHmac('sha256', hmacSecret).update(req.body).digest('base64')
@@ -27,10 +27,25 @@ function authenticate(req) {
   return null
 }
 
+const AUTH_HEADERS = new Set(['x-api-key', 'x-secret', 'x-hmac-signature', 'authorization'])
+
+// Yuno doesn't document where the webhook id travels, so show every id-like header and body field
+function webhookIds(req, event = {}) {
+  const fromHeaders = Object.entries(req.headers)
+    .filter(([name]) => !AUTH_HEADERS.has(name) && /id|webhook|event|delivery|notification/i.test(name))
+    .map(([name, value]) => `${name}=${value}`)
+  const fromBody = ['id', 'code', 'webhook_id', 'webhook_code', 'event_id', 'notification_id', 'delivery_id']
+    .flatMap((key) => [[key, event?.[key]], [`data.${key}`, event?.data?.[key]]])
+    .filter(([, value]) => value !== undefined && typeof value !== 'object')
+    .map(([key, value]) => `${key}=${value}`)
+  const ids = [...fromHeaders, ...fromBody]
+  return ids.length ? ids.join(' ') : 'none found'
+}
+
 webhooksRouter.post('/webhooks/yuno', express.raw({ type: '*/*', limit: '1mb' }), (req, res) => {
   const authError = authenticate(req)
   if (authError) {
-    log.error(`webhook rejected: ${authError}`)
+    log.error(`webhook rejected: ${authError} · webhook id: ${webhookIds(req)}`)
     return res.status(401).json({ error: 'unauthorized' })
   }
 
@@ -44,11 +59,23 @@ webhooksRouter.post('/webhooks/yuno', express.raw({ type: '*/*', limit: '1mb' })
   // ack first so Yuno doesn't retry
   res.status(200).json({ received: true })
 
-  const paymentId = event?.data?.payment?.id
-  log.webhook(`⇐ ${event.type_event ?? event.type} payment=${paymentId ?? '?'} status=${event?.data?.payment?.status ?? '?'} retry=${event.retry ?? 0} (signature ✓)`)
-  if (event.type !== 'payment' || !paymentId) return
+  // V2 wraps the payment in { type, type_event, data: { payment } }; the legacy format sends { payment } at the top level
+  const payment = event?.data?.payment ?? event?.payment
+  const paymentId = payment?.id
+  log.webhook(`⇐ ${event.type_event ?? event.type ?? 'payment (legacy)'} payment=${paymentId ?? '?'} status=${payment?.status ?? '?'} retry=${event.retry ?? 0} (signature ✓)`)
+  log.webhook(`  webhook id: ${webhookIds(req, event)}`)
+  if ((event.type && event.type !== 'payment') || !paymentId) {
+    log.warn(`webhook not handled — no payment id (top-level keys: ${Object.keys(event ?? {}).join(', ')})`)
+    return
+  }
 
   handlePaymentEvent(paymentId).catch((err) => log.error(`webhook processing failed: ${err.message}`))
+})
+
+// Anything else under /webhooks would be a 404 for Yuno: log it so a misconfigured URL or method is visible
+webhooksRouter.use('/webhooks', (req, res) => {
+  log.warn(`webhook 404: ${req.method} ${req.originalUrl} (only POST /webhooks/yuno is handled) · webhook id: ${webhookIds(req)}`)
+  res.status(404).json({ error: 'not found' })
 })
 
 async function handlePaymentEvent(paymentId) {
